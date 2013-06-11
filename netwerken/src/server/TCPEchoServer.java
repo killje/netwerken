@@ -57,7 +57,7 @@ public class TCPEchoServer {
                     state = "";
                 }
                 System.out.println("Message received.");
-
+                System.out.println(message);
                 StringTokenizer st = new StringTokenizer(message);
                 String start = st.nextToken();
                 numMessages++;
@@ -114,6 +114,68 @@ public class TCPEchoServer {
                         if (st.countTokens() == 1) {
                             int messageNumber = Integer.parseInt(st.nextToken());
                             File[] documents = currentDirectory.listFiles();
+                            if (documents != null) {
+                                int messages = 0;
+                                for (int i = 0; i < documents.length; i++) {
+                                    if (getFileExtension(documents[i].getName()).equals("txt")) {
+                                        messages++;
+                                    }
+                                }
+                                File[] mailMessages = new File[messages];
+                                messages = 0;
+                                for (int i = 0; i < documents.length; i++) {
+                                    if (getFileExtension(documents[i].getName()).equals("txt")) {
+                                        mailMessages[messages] = new File(documents[i].toURI());
+                                        messages++;
+                                    }
+                                }
+                                if (messageNumber <= messages && messageNumber > 0) {
+                                    out.println("+OK " + messageNumber + " " + mailMessages[messages - 1].length());
+                                } else {
+                                    out.println("-ERR no such message, only " + messages + " messages in maildrop");
+                                }
+                            } else {
+                                out.println("-ERR there are no mails");
+                            }
+                        } else if (st.countTokens() == 0) {
+                            File[] mailMessages = currentDirectory.listFiles();
+                            long size = new Long(0);
+                            int messages = 0;
+                            if (mailMessages != null) {
+                                for (int i = 0; i < mailMessages.length; i++) {
+                                    if (getFileExtension(mailMessages[i].getName()).equals("txt")) {
+                                        size += mailMessages[i].length();
+                                        messages++;
+                                    }
+                                }
+                                String messageOut;
+                                if (messages != 0) {
+                                    messageOut = "+OK " + messages + " messages (" + size + " octets)";
+                                    messages = 0;
+                                    for (int i = 0; i < mailMessages.length; i++) {
+                                        if (getFileExtension(mailMessages[i].getName()).equals("txt")) {
+                                            messages++;
+                                            messageOut += "\n" + messages + " " + mailMessages[i].length();
+                                        }
+                                    }
+                                    messageOut += "\n.";
+                                    out.println(messageOut);
+                                }
+                                out.println("-ERR there are no mails");
+                            } else {
+                                out.println("-ERR there are no mails");
+                            }
+                        } else {
+                            out.println("-ERR uncorrect usage of LIST, use LIST [msg]");
+                        }
+                    } else {
+                        out.println("-ERR not in TRANSACTION state");
+                    }
+                } else if (start.equals("RETR")) {
+                    if (state.equals("TRANSACTION")) {
+                        if (st.countTokens() == 1) {
+                            int messageNumber = Integer.parseInt(st.nextToken());
+                            File[] documents = currentDirectory.listFiles();
                             int messages = 0;
                             for (int i = 0; i < documents.length; i++) {
                                 if (getFileExtension(documents[i].getName()).equals("txt")) {
@@ -128,45 +190,6 @@ public class TCPEchoServer {
                                     messages++;
                                 }
                             }
-                            if (messageNumber <= messages && messageNumber > 0) {
-                                out.println("+OK " + messageNumber + " " + mailMessages[messages - 1].length());
-                            } else {
-                                out.println("-ERR no such message, only " + messages + " messages in maildrop");
-                            }
-                            // TODO zorgen er voor dat hij noiet messages die als delete staan kunnen worden bekeken
-                        } else if (st.countTokens() == 0) {
-                            File[] mailMessages = currentDirectory.listFiles();
-                            long size = new Long(0);
-                            int messages = 0;
-                            for (int i = 0; i < mailMessages.length; i++) {
-                                if (getFileExtension(mailMessages[i].getName()).equals("txt")) {
-                                    size += mailMessages[i].length();
-                                    messages++;
-                                }
-                            }
-                            String messageOut;
-
-                            messageOut = "+OK " + messages + " messages (" + size + " octets)";
-                            messages = 0;
-                            for (int i = 0; i < mailMessages.length; i++) {
-                                if (getFileExtension(mailMessages[i].getName()).equals("txt")) {
-                                    messages++;
-                                    messageOut += "\n" + messages + " " + mailMessages[i].length();
-                                }
-                            }
-                            messageOut += "\n.";
-                            out.println(messageOut);
-                        } else {
-                            out.println("-ERR uncorrect usage of LIST, use LIST [msg]");
-                        }
-                    } else {
-                        out.println("-ERR not in TRANSACTION state");
-                    }
-                } else if (start.equals("RETR")) {
-                    if (state.equals("TRANSACTION")) {
-                        if (st.countTokens() == 1) {
-                            int messageNumber = Integer.parseInt(st.nextToken());
-                            File[] mailMessages = currentDirectory.listFiles();
                             if (messageNumber <= mailMessages.length && messageNumber > 0) {
                                 String messageOut;
                                 messageOut = "+OK " + messageNumber + " " + mailMessages[messageNumber - 1].length();
@@ -193,14 +216,34 @@ public class TCPEchoServer {
                             for (int i = 0; i < documents.length; i++) {
                                 if (getFileExtension(documents[i].getName()).equals("txt")) {
                                     messages++;
-                                    if (messages == messageNumber) {
-                                        String newFile = documents[i].getName();
-                                        newFile = replaceLastOcurense(newFile, "txt", "dele");
-                                        documents[i].renameTo(new File(currentDirectory.getAbsolutePath() + "\\" + newFile));
-                                    }
                                 }
                             }
-                            out.println("+OK message " + messageNumber + " deleted");
+                            File[] mailMessages = new File[messages];
+                            messages = 0;
+                            for (int i = 0; i < documents.length; i++) {
+                                if (getFileExtension(documents[i].getName()).equals("txt")) {
+                                    mailMessages[messages] = new File(documents[i].toURI());
+                                    messages++;
+                                }
+                            }
+                            messages = 0;
+                            if (mailMessages.length >= messageNumber && messageNumber > 0) {
+                                for (int i = 0; i < mailMessages.length; i++) {
+                                    if (getFileExtension(mailMessages[i].getName()).equals("txt")) {
+                                        messages++;
+                                        if (messages == messageNumber) {
+                                            String newFile = mailMessages[i].getName();
+                                            newFile = replaceLastOcurense(newFile, "txt", "dele");
+                                            System.out.println(currentDirectory.getAbsolutePath() + "\\" + newFile);
+                                            mailMessages[i].renameTo(new File(currentDirectory.getAbsolutePath() + "\\" + newFile));
+                                        }
+                                    }
+                                }
+                                out.println("+OK message " + messageNumber + " deleted");
+                            } else {
+                                out.println("-ERR could not find mail");
+
+                            }
                         } else {
                             out.println("-ERR uncorrect usage of DELE, use DELE msg");
                         }
