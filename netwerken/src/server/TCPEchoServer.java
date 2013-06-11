@@ -92,9 +92,13 @@ public class TCPEchoServer {
                     System.out.println(state);
                     if (state.equals("TRANSACTION")) {
                         if (st.countTokens() == 1) {
-                            int messageNumber = Integer.parseInt(st.nextToken());
+                            int messageNumber = Integer.parseInt(st.nextToken()) ;
                             File[] mailMessages = currentDirectory.listFiles();
-                            out.println("+OK " + messageNumber + " messages (" + mailMessages[messageNumber].length() + " octets)");
+                            if (messageNumber <= mailMessages.length) {
+                                out.println("+OK " + messageNumber +" "+ mailMessages[messageNumber-1].length());
+                            }else{
+                                out.println("-ERR no such message, only "+mailMessages.length+" messages in maildrop");
+                            }
                             // TODO zorgen er voor dat hij noiet messages die als delete staan kunnen worden bekeken
                         } else if (st.countTokens() == 0) {
                             File[] mailMessages = currentDirectory.listFiles();
@@ -104,7 +108,7 @@ public class TCPEchoServer {
                             }
                             out.println("+OK " + mailMessages.length + " messages (" + size + " octets)");
                             for (int i = 0; i < mailMessages.length; i++) {
-                                out.println(i+1 + " " + mailMessages[i].length());
+                                out.println(i + 1 + " " + mailMessages[i].length());
                             }
                             out.println(".");
                         } else {
