@@ -77,6 +77,8 @@ public class TCPEchoServer {
                     }
                 } else if (start.equals("USER")) {
                     if (st.countTokens() == 1) {
+                        if (!state.equals("AUTHORIZATION") && !state.equals("TRANSACTION")) {
+                        }
                         String boxName = st.nextToken();
                         currentDirectory = new File(file.getAbsolutePath() + "\\" + boxName);
                         if (currentDirectory.exists()) {
@@ -96,7 +98,7 @@ public class TCPEchoServer {
                             if (pass.equals(getPassword(currentDirectory.getAbsolutePath()))) {
                                 out.println("+OK maildrop locked and ready");
                                 state = "TRANSACTION";
-                            }else{
+                            } else {
                                 System.out.println(getPassword(currentDirectory.getAbsolutePath()));
                                 System.out.println(pass);
                                 out.println("-ERR Wrong password");
@@ -105,7 +107,7 @@ public class TCPEchoServer {
                             out.println("-ERR uncorrect usage of PASS, use PASS <string>");
                         }
                     } else {
-                        out.println("-ERR unable to lock maildrop");
+                        out.println("-ERR not in AUTHORIZATION state, use first USER name");
                     }
                 } else if (start.equals("LIST")) {
                     if (state.equals("TRANSACTION")) {
@@ -183,25 +185,28 @@ public class TCPEchoServer {
                         out.println("-ERR not in TRANSACTION state");
                     }
                 } else if (start.equals("DELE")) {
-                    if (st.countTokens() == 1) {
-                        int messageNumber = Integer.parseInt(st.nextToken());
-                        File[] documents = currentDirectory.listFiles();
-                        int messages = 0;
-                        for (int i = 0; i < documents.length; i++) {
-                            if (getFileExtension(documents[i].getName()).equals("txt")) {
-                                messages++;
-                                if (messages == messageNumber) {
-                                    String newFile = documents[i].getName();
-                                    newFile = replaceLastOcurense(newFile, "txt", "dele");
-                                    documents[i].renameTo(new File(currentDirectory.getAbsolutePath() + "\\" + newFile));
+                    if (state.equals("TRANSACTION")) {
+                        if (st.countTokens() == 1) {
+                            int messageNumber = Integer.parseInt(st.nextToken());
+                            File[] documents = currentDirectory.listFiles();
+                            int messages = 0;
+                            for (int i = 0; i < documents.length; i++) {
+                                if (getFileExtension(documents[i].getName()).equals("txt")) {
+                                    messages++;
+                                    if (messages == messageNumber) {
+                                        String newFile = documents[i].getName();
+                                        newFile = replaceLastOcurense(newFile, "txt", "dele");
+                                        documents[i].renameTo(new File(currentDirectory.getAbsolutePath() + "\\" + newFile));
+                                    }
                                 }
                             }
+                            out.println("+OK message " + messageNumber + " deleted");
+                        } else {
+                            out.println("-ERR uncorrect usage of DELE, use DELE msg");
                         }
-                        out.println("+OK message " + messageNumber + " deleted");
                     } else {
-                        out.println("-ERR uncorrect usage of DELE, use DELE msg");
+                        out.println("-ERR not in TRANSACTION state");
                     }
-
                 } else if (start.equals("QUIT")) {
                     out.println("+OK");
                     return;
@@ -211,7 +216,7 @@ public class TCPEchoServer {
                 }
                 message = in.readLine();
             }
-            out.println("Closing Conection");
+            out.println("Closing Server");
             System.exit(0);
         } catch (IOException e) {
             e.printStackTrace();
