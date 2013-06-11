@@ -42,10 +42,17 @@ public class TCPEchoClient {
                 message = userEntry.readLine();
                 out.println(message); 		//Step 3.
                 System.out.println("");
-                do {		//Step 3.
+                response = in.readLine();
+                if (response.equals("1")) {
                     response = in.readLine();
                     System.out.println("SERVER> " + response);
-                }while (in.ready());
+                }else if(response.equals("2")){
+                    while(!(response = in.readLine()).equals(".")){
+                        System.out.println("SERVER> " + response);
+                    }
+                }else{
+                    System.out.println("could not indentefi number of responses");
+                }          
                 
 
             } while (!message.equals("***CLOSE***"));
