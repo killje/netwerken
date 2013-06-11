@@ -127,8 +127,8 @@ public class TCPEchoServer {
                         out.println("-ERR not in TRANSACTION state");
                     }
                 } else if (start.equals("RETR")) {
-                } else if (start.equals("DELE ")) {
-                } else if (start.equals("QUIT ")) {
+                } else if (start.equals("DELE")) {
+                } else if (start.equals("QUIT")) {
                 } else {
                     out.println("Message " + numMessages
                             + ": " + message);     //Step 4.
