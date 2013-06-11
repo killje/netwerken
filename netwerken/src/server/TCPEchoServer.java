@@ -70,7 +70,6 @@ public class TCPEchoServer {
                     }
                     out.println("+OK " + mailMessages.length + " " + size);
                 } else if (start.equals("USER")) {
-                    out.println("1");
                     if (st.countTokens() == 1) {
                         String boxName = st.nextToken();
                         currentDirectory = new File(file.getAbsolutePath() + "\\" + boxName);
@@ -85,7 +84,6 @@ public class TCPEchoServer {
                         out.println("-ERR uncorrect usage of USER, use USER <name>");
                     }
                 } else if (start.equals("PASS")) {
-                    out.println("1");
                     if (state.equals("AUTHORIZATION")) {
                         if (st.hasMoreTokens()) {
                             String pass = st.nextToken(""); //to make the rest of the string one string
@@ -106,12 +104,10 @@ public class TCPEchoServer {
                         if (st.countTokens() == 1) {
                             int messageNumber = Integer.parseInt(st.nextToken());
                             File[] mailMessages = currentDirectory.listFiles();
-                            out.println("1");
                             if (messageNumber <= mailMessages.length && messageNumber > 0) {
 
                                 out.println("+OK " + messageNumber + " " + mailMessages[messageNumber - 1].length());
                             } else {
-
                                 out.println("-ERR no such message, only " + mailMessages.length + " messages in maildrop");
                             }
                             // TODO zorgen er voor dat hij noiet messages die als delete staan kunnen worden bekeken
@@ -121,18 +117,17 @@ public class TCPEchoServer {
                             for (int i = 0; i < mailMessages.length; i++) {
                                 size += mailMessages[i].length();
                             }
-                            out.println("2");
-                            out.println("+OK " + mailMessages.length + " messages (" + size + " octets)");
+                            String messageOut;
+                            messageOut = "+OK " + mailMessages.length + " messages (" + size + " octets)";
                             for (int i = 0; i < mailMessages.length; i++) {
-                                out.println(i + 1 + " " + mailMessages[i].length());
+                                messageOut += "\n" + (i + 1) + " " + mailMessages[i].length();
                             }
-                            out.println(".");
+                            messageOut += "\n.";
+                            out.println(messageOut);
                         } else {
-                            out.println("1");
                             out.println("-ERR uncorrect usage of LIST, use LIST [msg]");
                         }
                     } else {
-                        out.println("1");
                         out.println("-ERR not in TRANSACTION state");
                     }
                 } else if (start.equals("RETR")) {
@@ -141,17 +136,17 @@ public class TCPEchoServer {
                             int messageNumber = Integer.parseInt(st.nextToken());
                             File[] mailMessages = currentDirectory.listFiles();
                             if (messageNumber <= mailMessages.length && messageNumber > 0) {
-                                out.println("2");
-                                out.println("+OK " + messageNumber + " " + mailMessages[messageNumber - 1].length());
+                                String messageOut;
+                                messageOut = "+OK " + messageNumber + " " + mailMessages[messageNumber - 1].length();
                                 File input = new File(currentDirectory.getAbsolutePath() + "\\" + mailMessages[messageNumber - 1].getName());
-                                out.println(read(input));
-                                out.println(".");
+                                System.out.println(read(input));
+                                messageOut += "\n"+ read(input);
+                                messageOut += "\n.";
+                                out.println(messageOut);
                             } else {
-                                out.println("1");
                                 out.println("-ERR no such message, only " + mailMessages.length + " messages in maildrop");
                             }
                         } else {
-                            out.println("1");
                             out.println("-ERR uncorrect usage of RETR, use RETR msg");
                         }
                     } else {
@@ -159,11 +154,10 @@ public class TCPEchoServer {
                     }
                 } else if (start.equals("DELE")) {
                 } else if (start.equals("QUIT")) {
-                    out.println("1");
                     out.println("+OK");
-                    link.close();
+                    return;
+                    
                 } else {
-                    out.println("1");
                     out.println("Message " + numMessages
                             + ": " + message);     //Step 4.
                 }
