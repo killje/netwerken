@@ -89,15 +89,14 @@ public class TCPEchoServer {
                         out.println("-ERR unable to lock maildrop");
                     }
                 } else if (start.equals("LIST")) {
-                    System.out.println(state);
                     if (state.equals("TRANSACTION")) {
                         if (st.countTokens() == 1) {
-                            int messageNumber = Integer.parseInt(st.nextToken()) ;
+                            int messageNumber = Integer.parseInt(st.nextToken());
                             File[] mailMessages = currentDirectory.listFiles();
-                            if (messageNumber <= mailMessages.length) {
-                                out.println("+OK " + messageNumber +" "+ mailMessages[messageNumber-1].length());
-                            }else{
-                                out.println("-ERR no such message, only "+mailMessages.length+" messages in maildrop");
+                            if (messageNumber <= mailMessages.length && messageNumber > 0) {
+                                out.println("+OK " + messageNumber + " " + mailMessages[messageNumber - 1].length());
+                            } else {
+                                out.println("-ERR no such message, only " + mailMessages.length + " messages in maildrop");
                             }
                             // TODO zorgen er voor dat hij noiet messages die als delete staan kunnen worden bekeken
                         } else if (st.countTokens() == 0) {
@@ -118,8 +117,26 @@ public class TCPEchoServer {
                         out.println("-ERR not in TRANSACTION state");
                     }
                 } else if (start.equals("RETR")) {
-                } else if (start.equals("DELE ")) {
-                } else if (start.equals("QUIT ")) {
+                    if (state.equals("TRANSACTION")) {
+                        if (st.countTokens() == 1) {
+                            int messageNumber = Integer.parseInt(st.nextToken());
+                            File[] mailMessages = currentDirectory.listFiles();
+                            if (messageNumber <= mailMessages.length && messageNumber > 0) {
+                                out.println("+OK " + messageNumber + " " + mailMessages[messageNumber - 1].length());
+                                File input = new File(currentDirectory.getAbsolutePath() + "\\" + mailMessages[messageNumber - 1].getName());
+                                out.println(read(input));
+                                out.println(".");
+                            } else {
+                                out.println("-ERR no such message, only " + mailMessages.length + " messages in maildrop");
+                            }
+                        } else {
+                            out.println("-ERR uncorrect usage of RETR, use RETR msg");
+                        }
+                    } else {
+                        out.println("-ERR not in TRANSACTION state");
+                    }
+                } else if (start.equals("DELE")) {
+                } else if (start.equals("QUIT")) {
                 } else {
                     out.println("Message " + numMessages
                             + ": " + message);     //Step 4.
@@ -141,5 +158,24 @@ public class TCPEchoServer {
                 System.exit(1);
             }
         }
+    }
+
+    private static String read(File file) {
+        String inline;
+        String Output = "";
+        try {
+            BufferedReader br = new BufferedReader(new FileReader(file));
+            if ((inline = br.readLine()) != null) {
+                Output = inline;
+                while ((inline = br.readLine()) != null) {
+                    Output += "\n" + inline;
+                }
+            }
+
+        } catch (Exception e) {
+            e.printStackTrace();
+            System.out.println("a error has occured");
+        }
+        return Output;
     }
 }
