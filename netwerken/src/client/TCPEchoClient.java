@@ -46,7 +46,7 @@ public class TCPEchoClient {
                     response = in.readLine();
                     System.out.println("SERVER> " + response);
                 }while (in.ready());
-
+                
 
             } while (!message.equals("***CLOSE***"));
         } catch (IOException e) {
