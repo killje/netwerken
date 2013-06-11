@@ -146,6 +146,8 @@ public class TCPEchoServer {
                     }
                 } else if (start.equals("DELE")) {
                 } else if (start.equals("QUIT")) {
+                    out.println("+OK");
+                    link.close();
                 } else {
                     out.println("Message " + numMessages
                             + ": " + message);     //Step 4.
