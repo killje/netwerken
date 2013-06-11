@@ -27,8 +27,7 @@ public class TCPEchoServer {
         if (i > 0) {
             return fileName.substring(i + 1);
         }
-
-        return null;
+        return "";
     }
 
     private static void run() {
@@ -63,12 +62,19 @@ public class TCPEchoServer {
                 String start = st.nextToken();
                 numMessages++;
                 if (start.equals("STAT")) {
-                    File[] mailMessages = file.listFiles();
-                    long size = new Long(0);
-                    for (int i = 0; i < mailMessages.length; i++) {
-                        size += mailMessages[i].length();
+                    if (state.equals("TRANSACTION")) {
+                        File[] mailMessages = currentDirectory.listFiles();
+                        int messages = 0;
+                        long size = new Long(0);
+                        for (int i = 0; i < mailMessages.length; i++) {
+                            if (getFileExtension(mailMessages[i].getName()).equals("txt")) {
+                                size += mailMessages[i].length();
+                                messages++;
+                            }
+                        }
+                        out.println("+OK " + messages + " " + size);
+
                     }
-                    out.println("+OK " + mailMessages.length + " " + size);
                 } else if (start.equals("USER")) {
                     if (st.countTokens() == 1) {
                         String boxName = st.nextToken();
@@ -77,7 +83,6 @@ public class TCPEchoServer {
                             authorization = true;
                             out.println("+OK " + boxName + " is a valid mainbox");
                         } else {
-
                             out.println("-ERR never heard of mainbox " + boxName);
                         }
                     } else {
@@ -87,12 +92,15 @@ public class TCPEchoServer {
                     if (state.equals("AUTHORIZATION")) {
                         if (st.hasMoreTokens()) {
                             String pass = st.nextToken(""); //to make the rest of the string one string
-                            pass = pass.substring(1, pass.length() - 1);//to cut off the first space
-
-                            out.println("+OK maildrop locked and ready");
-                            state = "TRANSACTION";
-                            // TODO password systeem maken
-                            //throw new UnsupportedOperationException("not yet implemented");
+                            pass = pass.substring(1, pass.length());//to cut off the first space
+                            if (pass.equals(getPassword(currentDirectory.getAbsolutePath()))) {
+                                out.println("+OK maildrop locked and ready");
+                                state = "TRANSACTION";
+                            }else{
+                                System.out.println(getPassword(currentDirectory.getAbsolutePath()));
+                                System.out.println(pass);
+                                out.println("-ERR Wrong password");
+                            }
                         } else {
                             out.println("-ERR uncorrect usage of PASS, use PASS <string>");
                         }
@@ -103,24 +111,46 @@ public class TCPEchoServer {
                     if (state.equals("TRANSACTION")) {
                         if (st.countTokens() == 1) {
                             int messageNumber = Integer.parseInt(st.nextToken());
-                            File[] mailMessages = currentDirectory.listFiles();
-                            if (messageNumber <= mailMessages.length && messageNumber > 0) {
-
-                                out.println("+OK " + messageNumber + " " + mailMessages[messageNumber - 1].length());
+                            File[] documents = currentDirectory.listFiles();
+                            int messages = 0;
+                            for (int i = 0; i < documents.length; i++) {
+                                if (getFileExtension(documents[i].getName()).equals("txt")) {
+                                    messages++;
+                                }
+                            }
+                            File[] mailMessages = new File[messages];
+                            messages = 0;
+                            for (int i = 0; i < documents.length; i++) {
+                                if (getFileExtension(documents[i].getName()).equals("txt")) {
+                                    mailMessages[messages] = new File(documents[i].toURI());
+                                    messages++;
+                                }
+                            }
+                            if (messageNumber <= messages && messageNumber > 0) {
+                                out.println("+OK " + messageNumber + " " + mailMessages[messages - 1].length());
                             } else {
-                                out.println("-ERR no such message, only " + mailMessages.length + " messages in maildrop");
+                                out.println("-ERR no such message, only " + messages + " messages in maildrop");
                             }
                             // TODO zorgen er voor dat hij noiet messages die als delete staan kunnen worden bekeken
                         } else if (st.countTokens() == 0) {
                             File[] mailMessages = currentDirectory.listFiles();
                             long size = new Long(0);
+                            int messages = 0;
                             for (int i = 0; i < mailMessages.length; i++) {
-                                size += mailMessages[i].length();
+                                if (getFileExtension(mailMessages[i].getName()).equals("txt")) {
+                                    size += mailMessages[i].length();
+                                    messages++;
+                                }
                             }
                             String messageOut;
-                            messageOut = "+OK " + mailMessages.length + " messages (" + size + " octets)";
+
+                            messageOut = "+OK " + messages + " messages (" + size + " octets)";
+                            messages = 0;
                             for (int i = 0; i < mailMessages.length; i++) {
-                                messageOut += "\n" + (i + 1) + " " + mailMessages[i].length();
+                                if (getFileExtension(mailMessages[i].getName()).equals("txt")) {
+                                    messages++;
+                                    messageOut += "\n" + messages + " " + mailMessages[i].length();
+                                }
                             }
                             messageOut += "\n.";
                             out.println(messageOut);
@@ -140,7 +170,7 @@ public class TCPEchoServer {
                                 messageOut = "+OK " + messageNumber + " " + mailMessages[messageNumber - 1].length();
                                 File input = new File(currentDirectory.getAbsolutePath() + "\\" + mailMessages[messageNumber - 1].getName());
                                 System.out.println(read(input));
-                                messageOut += "\n"+ read(input);
+                                messageOut += "\n" + read(input);
                                 messageOut += "\n.";
                                 out.println(messageOut);
                             } else {
@@ -153,19 +183,36 @@ public class TCPEchoServer {
                         out.println("-ERR not in TRANSACTION state");
                     }
                 } else if (start.equals("DELE")) {
+                    if (st.countTokens() == 1) {
+                        int messageNumber = Integer.parseInt(st.nextToken());
+                        File[] documents = currentDirectory.listFiles();
+                        int messages = 0;
+                        for (int i = 0; i < documents.length; i++) {
+                            if (getFileExtension(documents[i].getName()).equals("txt")) {
+                                messages++;
+                                if (messages == messageNumber) {
+                                    String newFile = documents[i].getName();
+                                    newFile = replaceLastOcurense(newFile, "txt", "dele");
+                                    documents[i].renameTo(new File(currentDirectory.getAbsolutePath() + "\\" + newFile));
+                                }
+                            }
+                        }
+                        out.println("+OK message " + messageNumber + " deleted");
+                    } else {
+                        out.println("-ERR uncorrect usage of DELE, use DELE msg");
+                    }
+
                 } else if (start.equals("QUIT")) {
                     out.println("+OK");
                     return;
-                    
                 } else {
                     out.println("Message " + numMessages
                             + ": " + message);     //Step 4.
                 }
                 message = in.readLine();
             }
+            out.println("Closing Conection");
             System.exit(0);
-            out.println(numMessages
-                    + " messages received.");	//Step 4.
         } catch (IOException e) {
             e.printStackTrace();
         } finally {
@@ -192,6 +239,30 @@ public class TCPEchoServer {
                 }
             }
 
+        } catch (Exception e) {
+            e.printStackTrace();
+            System.out.println("a error has occured");
+        }
+        return Output;
+    }
+
+    private static String replaceLastOcurense(String fileName, String s, String q) {
+        int i = fileName.lastIndexOf(s);
+        if (i > 0) {
+            return fileName.substring(0, i) + q;
+        }
+        return fileName;
+    }
+
+    private static String getPassword(String file) {
+        File passFile = new File(file + "\\pass.pass");
+        String inline;
+        String Output = "";
+        try {
+            BufferedReader br = new BufferedReader(new FileReader(passFile));
+            if ((inline = br.readLine()) != null) {
+                Output = inline;
+            }
         } catch (Exception e) {
             e.printStackTrace();
             System.out.println("a error has occured");
