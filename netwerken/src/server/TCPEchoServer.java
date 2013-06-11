@@ -80,6 +80,7 @@ public class TCPEchoServer {
                             pass = pass.substring(1, pass.length() - 1);//to cut off the first space
                             out.println("+OK maildrop locked and ready");
                             state = "TRANSACTION";
+                            // TODO password systeem maken
                             //throw new UnsupportedOperationException("not yet implemented");
                         } else {
                             out.println("-ERR uncorrect usage of PASS, use PASS <string>");
@@ -94,6 +95,7 @@ public class TCPEchoServer {
                             int messageNumber = Integer.parseInt(st.nextToken());
                             File[] mailMessages = currentDirectory.listFiles();
                             out.println("+OK " + messageNumber + " messages (" + mailMessages[messageNumber].length() + " octets)");
+                            // TODO zorgen er voor dat hij noiet messages die als delete staan kunnen worden bekeken
                         } else if (st.countTokens() == 0) {
                             File[] mailMessages = currentDirectory.listFiles();
                             long size = new Long(0);
