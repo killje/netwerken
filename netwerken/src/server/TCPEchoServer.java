@@ -21,6 +21,15 @@ public class TCPEchoServer {
             run();
         } while (true);
     }
+    
+    public static String getFileExtension(String fileName) {
+        int i = fileName.lastIndexOf('.');
+        if (i > 0) {
+            return fileName.substring(i + 1);
+        }
+        
+        return null;
+    }
 
     private static void run() {
         Socket link = null;                        //Step 2.
